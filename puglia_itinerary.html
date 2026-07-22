@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Puglia wedding trip — two itinerary options</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<style>
+  :root{
+    --ink:#2c2c2a; --ink-soft:#5f5e5a; --ink-faint:#888780;
+    --paper:#faf8f3; --card:#ffffff; --line:#e4e0d6;
+    --teal:#0f6e56; --teal-bg:#e1f5ee; --teal-line:#9fe1cb;
+    --coral:#993c1d; --coral-bg:#faece7; --coral-line:#f0997b;
+    --amber:#854f0b; --amber-bg:#faeeda;
+    --purple:#534ab7; --purple-bg:#eeedfe;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px;}
+  header.hero{padding:12px 0 28px;border-bottom:1px solid var(--line);margin-bottom:28px;}
+  header.hero h1{font-size:30px;font-weight:700;margin:0 0 6px;letter-spacing:-0.01em;}
+  header.hero p{margin:0;color:var(--ink-soft);font-size:15px;max-width:640px;}
+  .note{
+    background:var(--amber-bg);border:1px solid #f0d9ad;border-radius:var(--radius);
+    padding:12px 16px;font-size:13.5px;color:#5c3d08;margin-top:18px;
+  }
+  .toggle-row{display:flex;gap:10px;margin:26px 0 8px;flex-wrap:wrap;}
+  .toggle-btn{
+    flex:1;min-width:260px;text-align:left;padding:14px 18px;border-radius:var(--radius);
+    border:1.5px solid var(--line);background:var(--card);cursor:pointer;font-size:14.5px;
+    color:var(--ink);transition:.15s;
+  }
+  .toggle-btn strong{display:block;font-size:16px;margin-bottom:2px;}
+  .toggle-btn.active{border-color:var(--teal);background:var(--teal-bg);}
+  .toggle-btn.active strong{color:var(--teal);}
+  .toggle-btn small{color:var(--ink-soft);}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .schedule-strip{display:flex;gap:8px;overflow-x:auto;margin:22px 0;padding-bottom:4px;}
+  .day-chip{flex:0 0 auto;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;min-width:118px;}
+  .day-chip .d{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;}
+  .day-chip .t{font-size:13.5px;font-weight:600;margin-top:2px;}
+  .day-chip.base{background:var(--teal-bg);border-color:var(--teal-line);}
+  .day-chip.move{background:var(--coral-bg);border-color:var(--coral-line);}
+
+  #map1, #map2{height:420px;border-radius:var(--radius);border:1px solid var(--line);margin:8px 0 28px;}
+
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+  .metric{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;}
+  .metric .l{font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;}
+  .metric .v{font-size:22px;font-weight:700;}
+
+  h2.section{font-size:19px;font-weight:700;margin:36px 0 14px;}
+  h3.subsection{font-size:15px;font-weight:700;margin:0 0 10px;}
+
+  .proscons{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0 8px;}
+  .pc-box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
+  .pc-box.pro{border-left:3px solid var(--teal);}
+  .pc-box.con{border-left:3px solid var(--coral);}
+  .pc-box h4{font-size:13px;text-transform:uppercase;letter-spacing:.03em;margin:0 0 10px;}
+  .pc-box.pro h4{color:var(--teal);}
+  .pc-box.con h4{color:var(--coral);}
+  .pc-box ul{margin:0;padding-left:18px;font-size:13.5px;}
+  .pc-box li{margin-bottom:7px;}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;}
+  .card .band{height:6px;}
+  .band.teal{background:var(--teal);}
+  .band.coral{background:var(--coral);}
+  .card .body{padding:16px 18px 18px;}
+  .card h3{font-size:16.5px;margin:0 0 2px;}
+  .card .tag{display:inline-block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:2px 8px;border-radius:20px;margin-bottom:10px;}
+  .tag.base{background:var(--teal-bg);color:var(--teal);}
+  .tag.trip{background:var(--coral-bg);color:var(--coral);}
+
+  .timebox{display:flex;justify-content:space-between;align-items:center;background:#f5f3ec;border-radius:8px;padding:8px 12px;margin:10px 0 12px;font-size:13px;}
+  .timebox .rt{font-weight:700;font-size:15px;}
+  .tt-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);padding:3px 0;border-top:1px dashed var(--line);}
+  .tt-row:first-child{border-top:none;}
+  .tt-row.food{color:var(--ink);font-weight:500;}
+
+  .todo{margin:12px 0 0;padding-left:20px;font-size:13.5px;}
+  .todo li{margin-bottom:7px;}
+
+  .links{margin-top:12px;display:flex;flex-direction:column;gap:5px;}
+  .links a{font-size:13px;color:var(--teal);text-decoration:none;}
+  .links a:hover{text-decoration:underline;}
+
+  .vs{margin-top:56px;padding-top:32px;border-top:2px solid var(--line);}
+  .vs-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;}
+  .vs-col{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;}
+  .vs-col h3{font-size:16px;margin:0 0 4px;}
+  .vs-col .region-tag{font-size:12px;color:var(--ink-soft);margin-bottom:12px;}
+  .vs-col h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;margin:16px 0 6px;color:var(--ink-soft);}
+  .vs-col h4:first-of-type{margin-top:0;}
+  .vs-col ul{margin:0;padding-left:18px;font-size:13.5px;}
+  .vs-col li{margin-bottom:7px;}
+
+  .compare{margin-top:56px;padding-top:32px;border-top:2px solid var(--line);}
+  .compare table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .compare th,.compare td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);}
+  .compare th{color:var(--ink-soft);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;}
+  .compare tr:last-child td{font-weight:700;}
+
+  .photo-carousel{position:relative;aspect-ratio:4/3;background:var(--surface-1,#efece2);border-radius:8px;overflow:hidden;margin-bottom:12px;}
+  .pc-img{width:100%;height:100%;object-fit:cover;display:block;background:#ddd8c9;}
+  .pc-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.9);border:0.5px solid rgba(0,0,0,.1);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);font-size:15px;padding:0;}
+  .pc-arrow.prev{left:8px;}
+  .pc-arrow.next{right:8px;}
+  .pc-arrow:hover{background:#fff;}
+  .pc-dots{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;gap:5px;}
+  .pc-dots span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.55);display:block;}
+  .pc-dots span.active{background:#fff;}
+  .pc-credit{position:absolute;bottom:6px;right:8px;font-size:9.5px;color:rgba(255,255,255,.85);background:rgba(0,0,0,.35);padding:1px 5px;border-radius:4px;}
+
+  footer{margin-top:48px;font-size:12.5px;color:var(--ink-faint);border-top:1px solid var(--line);padding-top:18px;}
+  @media (max-width:640px){ .proscons, .vs-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Puglia, Aug 24&ndash;30 &mdash; two itinerary options</h1>
+    <p>Flight lands and departs Brindisi Airport. Wedding in Monopoli on Aug 28. This page compares two genuinely different plans: Option 1 stays in central Puglia (Valle d&rsquo;Itria), Option 2 swaps that out for Salento&rsquo;s coast.</p>
+    <div class="note">These are two different itineraries with different destinations, not two paths to the same trip. Photos are pulled live from Wikimedia Commons (public domain / CC-licensed) &mdash; use the arrows on each photo to cycle through a few views of that place. <strong>If photos don&rsquo;t appear:</strong> download this file and open it directly in a browser rather than viewing it in an in-app preview, since in-app previews often sandbox and block external image domains. Timetable figures are representative durations and typical first/last departures on Trenitalia and FSE &mdash; always check live schedules before booking, since they shift seasonally and on weekends. Food prices are rough August (peak season) estimates for casual-to-midrange dining, per person, excluding drinks unless noted.</div>
+  </header>
+
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="btn1" onclick="showPanel(1)">
+      <strong>Option 1 &mdash; Monopoli base</strong>
+      <small>Day trips: Lecce, Ostuni, Valle d&rsquo;Itria, Polignano a Mare</small>
+    </button>
+    <button class="toggle-btn" id="btn2" onclick="showPanel(2)">
+      <strong>Option 2 &mdash; Lecce base + Salento</strong>
+      <small>Day trips: Otranto, Gallipoli, then move to Monopoli + Polignano</small>
+    </button>
+  </div>
+
+  <!-- ================= OPTION 1 ================= -->
+  <div class="panel active" id="panel1">
+
+    <div class="schedule-strip">
+      <div class="day-chip move"><div class="d">Aug 24</div><div class="t">Arrive &rarr; Monopoli</div></div>
+      <div class="day-chip base"><div class="d">Aug 25</div><div class="t">Day trip: Lecce</div></div>
+      <div class="day-chip base"><div class="d">Aug 26</div><div class="t">Day trip: Ostuni</div></div>
+      <div class="day-chip base"><div class="d">Aug 27</div><div class="t">Day trip: Valle d&rsquo;Itria</div></div>
+      <div class="day-chip base"><div class="d">Aug 28</div><div class="t">Wedding day</div></div>
+      <div class="day-chip base"><div class="d">Aug 29</div><div class="t">Day trip: Polignano</div></div>
+      <div class="day-chip move"><div class="d">Aug 30</div><div class="t">Brindisi &rarr; flight</div></div>
+    </div>
+
+    <div id="map1"></div>
+
+    <div class="metrics">
+      <div class="metric"><div class="l">Total transit time</div><div class="v">10h 22m</div></div>
+      <div class="metric"><div class="l">Day-trip transit only</div><div class="v">7h 50m</div></div>
+      <div class="metric"><div class="l">Luggage moves</div><div class="v">2</div></div>
+    </div>
+
+    <div class="proscons">
+      <div class="pc-box pro">
+        <h4>Pros</h4>
+        <ul>
+          <li>Only 2 luggage moves total (arrival + departure) &mdash; lowest disruption risk of either plan</li>
+          <li>Every night, including the wedding night, is in the same bed</li>
+          <li>Covers Puglia&rsquo;s most iconic inland sights: the UNESCO-listed trulli of Alberobello (1996), Lecce&rsquo;s baroque core, and Ostuni&rsquo;s hilltop old town</li>
+          <li>Valle d&rsquo;Itria is where trulli architecture is most concentrated and best preserved anywhere in Puglia</li>
+        </ul>
+      </div>
+      <div class="pc-box con">
+        <h4>Cons</h4>
+        <ul>
+          <li>Longest total transit time of the two plans (~10h 22m), since Valle d&rsquo;Itria requires routing via Bari</li>
+          <li>Alberobello is Puglia&rsquo;s most touristic stop &mdash; expect cruise-excursion crowds even in the UNESCO district</li>
+          <li>Coastal swimming near Monopoli is mostly small rocky coves, not Salento&rsquo;s sandy beaches</li>
+          <li>FSE service to Alberobello thins out on Sundays, so day-of-week matters for that leg</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 class="section">Base &amp; day trips</h2>
+    <div class="cards">
+
+      <div class="card">
+        <div class="band teal"></div>
+        <div class="body">
+          <span class="tag base">Base, 6 nights</span>
+          <h3>Monopoli</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-mono1" alt="Monopoli">
+            <button class="pc-arrow prev" onclick="cycle('mono1','monopoli',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('mono1','monopoli',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-mono1"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Arrival from Brindisi Airport</span><span class="rt">~70 min</span></div>
+          <div class="tt-row"><span>Air&amp;Port Link train + Trenitalia</span><span>one connection</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;15&ndash;22 lunch / &euro;30&ndash;45 dinner</span></div>
+          <ul class="todo">
+            <li>Old harbor, Cala Porta Vecchia, sea walls</li>
+            <li>Castello di Carlo V on the harbor front</li>
+            <li>Compact whitewashed old town lanes</li>
+            <li>Seafood dinner near the port before/after the wedding</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.trenitalia.com" target="_blank">Trenitalia &mdash; book trains</a>
+            <a href="https://fernandostraveltips.com/b-amp-b-monopoli-old-town-italy" target="_blank">B&amp;B Monopoli Old Town</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band coral"></div>
+        <div class="body">
+          <span class="tag trip">Day trip</span>
+          <h3>Lecce</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-lecce1" alt="Lecce">
+            <button class="pc-arrow prev" onclick="cycle('lecce1','lecce',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('lecce1','lecce',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-lecce1"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Round trip from Monopoli</span><span class="rt">~160 min</span></div>
+          <div class="tt-row"><span>Corridor line, no change</span><span>~70&ndash;80 min each way</span></div>
+          <div class="tt-row"><span>Frequency</span><span>every 30&ndash;60 min</span></div>
+          <div class="tt-row"><span>First / last (Lecce&ndash;Ostuni ref.)</span><span>~05:00 / ~23:50</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;12&ndash;18 lunch / &euro;22&ndash;32 dinner</span></div>
+          <ul class="todo">
+            <li>Basilica di Santa Croce, Piazza del Duomo</li>
+            <li>Piazza Sant&rsquo;Oronzo and the 2nd-century Roman amphitheater</li>
+            <li>Pasticciotto pastry for breakfast</li>
+            <li>Local ceramics and papier-m&acirc;ch&eacute; workshops</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.trenitalia.com" target="_blank">Trenitalia &mdash; book trains</a>
+            <a href="https://www.omio.com" target="_blank">Omio &mdash; compare train/bus</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band coral"></div>
+        <div class="body">
+          <span class="tag trip">Day trip</span>
+          <h3>Ostuni</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-ostuni1" alt="Ostuni">
+            <button class="pc-arrow prev" onclick="cycle('ostuni1','ostuni',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('ostuni1','ostuni',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-ostuni1"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Round trip from Monopoli</span><span class="rt">~70 min</span></div>
+          <div class="tt-row"><span>Direct Trenitalia regional</span><span>~20 min each way</span></div>
+          <div class="tt-row"><span>Frequency</span><span>~24&ndash;27 trains/day</span></div>
+          <div class="tt-row"><span>First / last</span><span>~05:35 / ~23:06</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;15&ndash;22 lunch / &euro;30&ndash;45 dinner</span></div>
+          <ul class="todo">
+            <li>Whitewashed old town up to the hilltop Concattedrale (15th-c. Gothic-Romanesque)</li>
+            <li>Aperitivo on a terrace over the countryside</li>
+            <li>Orecchiette, burrata, taralli, local olive oil</li>
+            <li>Station sits ~3km from town &mdash; use the summer shuttle bus or a taxi</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.trenitalia.com" target="_blank">Trenitalia &mdash; book trains</a>
+            <a href="https://www.comune.ostuni.br.it" target="_blank">Ostuni tourism info</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band coral"></div>
+        <div class="body">
+          <span class="tag trip">Day trip</span>
+          <h3>Valle d&rsquo;Itria (Alberobello &amp; Locorotondo)</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-valle1" alt="Valle d'Itria">
+            <button class="pc-arrow prev" onclick="cycle('valle1','valleditria',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('valle1','valleditria',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-valle1"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Round trip from Monopoli</span><span class="rt">~220 min</span></div>
+          <div class="tt-row"><span>Trenitalia to Bari</span><span>~30 min, first ~04:43 / last ~22:45</span></div>
+          <div class="tt-row"><span>FSE Bari &rarr; Alberobello</span><span>~65&ndash;75 min, roughly hourly</span></div>
+          <div class="tt-row"><span>Weekend note</span><span>fewer FSE departures on Sundays</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;15&ndash;20 lunch / &euro;25&ndash;35 dinner</span></div>
+          <ul class="todo">
+            <li>Locorotondo: circular old town, flower-filled balconies, one of Italy&rsquo;s officially recognized borghi pi&ugrave; belli</li>
+            <li>Alberobello: UNESCO World Heritage trulli district since 1996 (Rione Monti, Aia Piccola)</li>
+            <li>Rooftop caf&eacute; view over the trulli cones</li>
+            <li>Glass of Locorotondo DOC white wine (est. 1972) with lunch</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.fseonline.it" target="_blank">FSE &mdash; timetables</a>
+            <a href="http://www.comune.alberobello.ba.it/" target="_blank">Alberobello comune info</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band coral"></div>
+        <div class="body">
+          <span class="tag trip">Day trip</span>
+          <h3>Polignano a Mare</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-poli1" alt="Polignano a Mare">
+            <button class="pc-arrow prev" onclick="cycle('poli1','polignano',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('poli1','polignano',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-poli1"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Round trip from Monopoli</span><span class="rt">~20 min</span></div>
+          <div class="tt-row"><span>Direct Trenitalia regional</span><span>~4&ndash;8 min each way</span></div>
+          <div class="tt-row"><span>Frequency</span><span>~35 trains/day</span></div>
+          <div class="tt-row"><span>First / last</span><span>~04:41 / ~23:00</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;18&ndash;25 lunch / &euro;35&ndash;50 dinner</span></div>
+          <ul class="todo">
+            <li>Lama Monachile cove beach beneath the bridge</li>
+            <li>Clifftop old town, balconies over the sea</li>
+            <li>Gelato al bacio overlooking the water</li>
+            <li>Red Bull cliff-diving series here in season</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.trenitalia.com" target="_blank">Trenitalia &mdash; book trains</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= OPTION 2 ================= -->
+  <div class="panel" id="panel2">
+
+    <div class="schedule-strip">
+      <div class="day-chip move"><div class="d">Aug 24</div><div class="t">Land 9:30am &rarr; explore Lecce</div></div>
+      <div class="day-chip base"><div class="d">Aug 25</div><div class="t">Day trip: Otranto</div></div>
+      <div class="day-chip base"><div class="d">Aug 26</div><div class="t">Day trip: Gallipoli</div></div>
+      <div class="day-chip move"><div class="d">Aug 27</div><div class="t">Lecce leftovers, move &rarr; Monopoli</div></div>
+      <div class="day-chip base"><div class="d">Aug 28</div><div class="t">Wedding day</div></div>
+      <div class="day-chip base"><div class="d">Aug 29</div><div class="t">Day trip: Polignano</div></div>
+      <div class="day-chip move"><div class="d">Aug 30</div><div class="t">Brindisi &rarr; flight</div></div>
+    </div>
+
+    <div id="map2"></div>
+
+    <div class="metrics">
+      <div class="metric"><div class="l">Total transit time</div><div class="v">9h 22m</div></div>
+      <div class="metric"><div class="l">Day-trip transit only</div><div class="v">6h 10m</div></div>
+      <div class="metric"><div class="l">Luggage moves</div><div class="v">3</div></div>
+    </div>
+
+    <div class="proscons">
+      <div class="pc-box pro">
+        <h4>Pros</h4>
+        <ul>
+          <li>Still faster overall than Option 1 (~9h 22m vs ~10h 22m), with a real full day in Lecce itself instead of a rushed arrival</li>
+          <li>Landing at 9:30am means you&rsquo;re settled in Lecce by lunchtime, leaving a genuine first afternoon and evening in the city</li>
+          <li>Adds real history: Otranto&rsquo;s Norman cathedral holds a complete 1163&ndash;65 mosaic floor and the relics of the 813 Martyrs of Otranto, canonized in 2013</li>
+          <li>Gallipoli&rsquo;s old town sits on its own limestone island with a still-working fishing fleet and an Aragonese castle</li>
+          <li>Real sandy swimming: Baia dei Turchi near Otranto and La Purit&agrave; in Gallipoli, unlike Monopoli&rsquo;s rocky coves</li>
+        </ul>
+      </div>
+      <div class="pc-box con">
+        <h4>Cons</h4>
+        <ul>
+          <li>Otranto and Gallipoli both run longer round trips than first estimated (~2h40&ndash;3h20 each), so day-trip transit is now much closer to Option 1&rsquo;s than it first appeared</li>
+          <li>One extra luggage move (3 total) &mdash; still requires relocating Lecce&rarr;Monopoli before the wedding</li>
+          <li>Misses the Valle d&rsquo;Itria entirely: no Alberobello, no trulli, no UNESCO site on this route</li>
+          <li>Otranto&rsquo;s bus service is seasonal and thinner outside summer (August timing works in this trip&rsquo;s favor)</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 class="section">Base &amp; day trips</h2>
+    <div class="cards">
+
+      <div class="card">
+        <div class="band teal"></div>
+        <div class="body">
+          <span class="tag base">Base, 3 nights</span>
+          <h3>Lecce &mdash; arrival &amp; full exploration day</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-lecce2" alt="Lecce">
+            <button class="pc-arrow prev" onclick="cycle('lecce2','lecce',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('lecce2','lecce',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-lecce2"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Land 9:30am &rarr; in Lecce by</span><span class="rt">~11:30am&ndash;12pm</span></div>
+          <div class="tt-row"><span>Airport bus &rarr; Brindisi station</span><span>~15 min</span></div>
+          <div class="tt-row"><span>Train Brindisi &rarr; Lecce</span><span>~30&ndash;40 min</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;12&ndash;18 lunch / &euro;22&ndash;32 dinner</span></div>
+          <ul class="todo">
+            <li>Piazza Sant&rsquo;Oronzo &mdash; city center, Roman amphitheater sunk into the square</li>
+            <li>Basilica di Santa Croce &mdash; the showpiece of Barocco Leccese, take your time on the facade</li>
+            <li>Piazza del Duomo &mdash; enclosed square with the Duomo and Bishop&rsquo;s Palace</li>
+            <li>Roman Theatre &mdash; smaller, quieter than the amphitheater, often overlooked</li>
+            <li>Corso Vittorio Emanuele / Via Palmieri &mdash; wander the lanes, papier-m&acirc;ch&eacute; workshops</li>
+            <li>Evening: aperitivo + dinner &mdash; try a rustico leccese and a pasticciotto for dessert</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.trenitalia.com/en/services/brindisi-air-port-link.html" target="_blank">Brindisi Air&amp;Port Link info</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band coral"></div>
+        <div class="body">
+          <span class="tag trip">Day trip</span>
+          <h3>Otranto</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-otranto2" alt="Otranto">
+            <button class="pc-arrow prev" onclick="cycle('otranto2','otranto',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('otranto2','otranto',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-otranto2"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Round trip from Lecce</span><span class="rt">~2h40&ndash;3h</span></div>
+          <div class="tt-row"><span>Direct bus (Salento in Bus / FSE)</span><span>~1h20&ndash;1h30 each way</span></div>
+          <div class="tt-row"><span>Note</span><span>seasonal service, check ahead</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;14&ndash;20 lunch / &euro;25&ndash;38 dinner</span></div>
+          <ul class="todo">
+            <li>Aragonese Castle</li>
+            <li>Cathedral with its stunning medieval mosaic floor (1163&ndash;65)</li>
+            <li>Crypt of the Martyrs</li>
+            <li>Walk along the harbor / city walls</li>
+            <li>Some of the clearest water in Puglia &mdash; worth a swim</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.trenitalia.com/it/regionale/collegamenti-regionale/otranto-link.html" target="_blank">Otranto Link (Trenitalia)</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band coral"></div>
+        <div class="body">
+          <span class="tag trip">Day trip</span>
+          <h3>Gallipoli</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-gallipoli2" alt="Gallipoli">
+            <button class="pc-arrow prev" onclick="cycle('gallipoli2','gallipoli',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('gallipoli2','gallipoli',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-gallipoli2"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Round trip from Lecce</span><span class="rt">~2h40&ndash;3h20</span></div>
+          <div class="tt-row"><span>Direct FSE train</span><span>~1h18&ndash;1h40 each way</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;15&ndash;22 lunch / &euro;30&ndash;45 dinner</span></div>
+          <ul class="todo">
+            <li>Old town on its own small island, connected by a bridge &mdash; walk the walls</li>
+            <li>The castle</li>
+            <li>The fish market</li>
+            <li>Baroque Church of Santa Agata</li>
+            <li>Good beach-town feel if you want to combine sightseeing with sea time</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.fseonline.it" target="_blank">FSE &mdash; timetables</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band teal"></div>
+        <div class="body">
+          <span class="tag base">Half day + move</span>
+          <h3>Lecce leftovers &rarr; transfer to Monopoli</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-lecceleftover" alt="Lecce">
+            <button class="pc-arrow prev" onclick="cycle('lecceleftover','lecce',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('lecceleftover','lecce',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-lecceleftover"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Late afternoon train to Monopoli, direct</span><span class="rt">~1 hour</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;12&ndash;18 lunch / &euro;22&ndash;32 dinner</span></div>
+          <ul class="todo">
+            <li>Castello di Carlo V &mdash; 16th-century castle</li>
+            <li>Museo Faggiano &mdash; the "accidental archaeology" house-museum, small but memorable</li>
+            <li>Porta Napoli and any Baroque churches you didn&rsquo;t get to (Sant&rsquo;Irene, Chiesa del Rosario)</li>
+            <li>Lunch: try ciceri e tria or a Salento-style seafood dish</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.trenitalia.com" target="_blank">Trenitalia &mdash; book trains</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band teal"></div>
+        <div class="body">
+          <span class="tag base">Base, 3 nights</span>
+          <h3>Monopoli</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-mono2" alt="Monopoli">
+            <button class="pc-arrow prev" onclick="cycle('mono2','monopoli',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('mono2','monopoli',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-mono2"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Arrival (see transfer above)</span><span class="rt">~1 hour</span></div>
+          <div class="tt-row"><span>Direct corridor train, luggage move</span><span>one-way</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;15&ndash;22 lunch / &euro;30&ndash;45 dinner</span></div>
+          <ul class="todo">
+            <li>Old harbor, Cala Porta Vecchia, sea walls</li>
+            <li>Castello di Carlo V on the harbor front</li>
+            <li>Wedding evening, then recovery day after</li>
+            <li>Seafood dinner near the port</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.trenitalia.com" target="_blank">Trenitalia &mdash; book trains</a>
+            <a href="https://fernandostraveltips.com/b-amp-b-monopoli-old-town-italy" target="_blank">B&amp;B Monopoli Old Town</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="band coral"></div>
+        <div class="body">
+          <span class="tag trip">Day trip</span>
+          <h3>Polignano a Mare</h3>
+          <div class="photo-carousel">
+            <img class="pc-img" id="img-poli2" alt="Polignano a Mare">
+            <button class="pc-arrow prev" onclick="cycle('poli2','polignano',-1)" aria-label="Previous photo">&lsaquo;</button>
+            <button class="pc-arrow next" onclick="cycle('poli2','polignano',1)" aria-label="Next photo">&rsaquo;</button>
+            <div class="pc-dots" id="dots-poli2"></div>
+            <span class="pc-credit">Wikimedia Commons</span>
+          </div>
+          <div class="timebox"><span>Round trip from Monopoli</span><span class="rt">~20 min</span></div>
+          <div class="tt-row"><span>Direct Trenitalia regional</span><span>~4&ndash;8 min each way</span></div>
+          <div class="tt-row"><span>Frequency</span><span>~35 trains/day</span></div>
+          <div class="tt-row"><span>First / last</span><span>~04:41 / ~23:00</span></div>
+          <div class="tt-row food"><span>Typical food cost (Aug)</span><span>&euro;18&ndash;25 lunch / &euro;35&ndash;50 dinner</span></div>
+          <ul class="todo">
+            <li>Lama Monachile cove beach beneath the bridge</li>
+            <li>Clifftop old town, balconies over the sea</li>
+            <li>Gelato al bacio overlooking the water</li>
+          </ul>
+          <div class="links">
+            <a href="https://www.trenitalia.com" target="_blank">Trenitalia &mdash; book trains</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= SALENTO VS VALLE D'ITRIA ================= -->
+  <div class="vs">
+    <h2 class="section">Salento vs Valle d&rsquo;Itria</h2>
+    <p style="color:var(--ink-soft);font-size:14px;max-width:720px;margin:0;">The two options above aren&rsquo;t just different logistics &mdash; they represent two distinct regions of Puglia with different histories, landscapes, and protected sites.</p>
+    <div class="vs-grid">
+      <div class="vs-col">
+        <h3>Valle d&rsquo;Itria</h3>
+        <div class="region-tag">Ostuni, Alberobello, Locorotondo</div>
+        <h4>History &amp; recognition</h4>
+        <ul>
+          <li>Alberobello&rsquo;s trulli district: UNESCO World Heritage Site since 1996, recognized as an outstanding example of dry-stone vernacular architecture still inhabited today</li>
+          <li>Locorotondo is an officially recognized "borgo pi&ugrave; bello d&rsquo;Italia" (one of Italy&rsquo;s most beautiful villages)</li>
+          <li>Ostuni&rsquo;s old town traces to Messapian settlement, later Norman-fortified; the region has been inhabited since the Stone Age</li>
+        </ul>
+        <h4>Nature</h4>
+        <ul>
+          <li>Torre Guaceto Marine Protected Area near Ostuni/Carovigno: ~2,200 ha, WWF-managed since 1991, nesting site for loggerhead sea turtles</li>
+          <li>Coastal access from the valley is mostly small rocky coves rather than long sandy beaches</li>
+        </ul>
+        <h4>Trade-off</h4>
+        <ul>
+          <li>Alberobello is Puglia&rsquo;s single most touristic stop &mdash; cruise-excursion crowds are a real factor even on a weekday</li>
+          <li>Inland location means no direct beach access from the towns themselves</li>
+        </ul>
+      </div>
+      <div class="vs-col">
+        <h3>Salento</h3>
+        <div class="region-tag">Otranto, Gallipoli</div>
+        <h4>History &amp; recognition</h4>
+        <ul>
+          <li>Otranto Cathedral holds one of the only complete Norman-era mosaic floors surviving in Italy (1163&ndash;65), plus the Chapel of the Martyrs: relics of 813 residents killed in the 1480 Ottoman siege, canonized by Pope Francis in 2013</li>
+          <li>Gallipoli&rsquo;s centro storico occupies its own small limestone island, with an Aragonese castle and a fishing tradition still active today</li>
+        </ul>
+        <h4>Nature</h4>
+        <ul>
+          <li>Porto Selvaggio Regional Natural Park near Gallipoli/Nard&ograve;: ~1,000&ndash;1,100 ha of pine forest, cliffs and sea caves, protected by regional law since 2006</li>
+          <li>Real sandy swimming beaches at Baia dei Turchi (Otranto) and La Purit&agrave; (Gallipoli), plus long Ionian-coast stretches further south</li>
+        </ul>
+        <h4>Trade-off</h4>
+        <ul>
+          <li>No trulli, no UNESCO architecture on this side of the region</li>
+          <li>Public transport (especially to Otranto) is more seasonal and thins outside summer</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= COMPARISON ================= -->
+  <div class="compare">
+    <h2 class="section">Side by side</h2>
+    <table>
+      <tr><th>Metric</th><th>Option 1 &mdash; Monopoli base</th><th>Option 2 &mdash; Lecce base + Salento</th></tr>
+      <tr><td>Total transit time</td><td>10h 22m</td><td>9h 22m</td></tr>
+      <tr><td>Day-trip transit only</td><td>7h 50m</td><td>6h 10m</td></tr>
+      <tr><td>Luggage moves</td><td>2</td><td>3</td></tr>
+      <tr><td>Region covered</td><td>Central Puglia &amp; Valle d&rsquo;Itria</td><td>Southern Salento coast</td></tr>
+      <tr><td>Places visited</td><td>Lecce, Ostuni, Alberobello, Locorotondo, Polignano</td><td>Lecce, Otranto, Gallipoli, Polignano</td></tr>
+    </table>
+  </div>
+
+  <footer>
+    Built for the Aug 24&ndash;30 Puglia trip, wedding in Monopoli on Aug 28. Timetable figures are representative typical durations and departure ranges compiled from Trenitalia and FSE public timetable data; always verify live schedules before booking. Food price ranges are August peak-season estimates for casual-to-midrange dining and will vary by venue.
+  </footer>
+
+</div>
+
+<script>
+function showPanel(n){
+  document.getElementById('panel1').classList.toggle('active', n===1);
+  document.getElementById('panel2').classList.toggle('active', n===2);
+  document.getElementById('btn1').classList.toggle('active', n===1);
+  document.getElementById('btn2').classList.toggle('active', n===2);
+  setTimeout(()=>{ if(n===1 && map1) map1.invalidateSize(); if(n===2 && map2) map2.invalidateSize(); }, 50);
+}
+
+const galleries = {
+  monopoli: ["Porto, Monopoli.jpg", "Veduta del bastione sul porto, accesso alla città.jpg", "Scorcio del centro storico di Monopoli.jpg"],
+  lecce: ["Basilica of Santa Croce, Lecce 04.jpg", "Anfiteatro romano di Lecce 01.jpg", "2018-07 Anfiteatro romano di Lecce.jpg"],
+  ostuni: ["Veduta dalle mura di Ostuni.jpg", "Piazza della Libertà, Ostuni.jpg", "Ostuni bianca 29.jpg"],
+  valleditria: ["Alberobello con il drone.jpg", "Piazza del Popolo, Alberobello.jpg", "Alberobello, Panorama con trulli. - panoramio.jpg"],
+  polignano: ["Lama Monachile.jpg", "Il Ponte di Polignano - panoramio.jpg", "LamaMonachile VirginiaCassano.jpg"],
+  otranto: ["Castello Aragonese Otranto all'alba.jpg", "Il mare dal centro storico di Otranto. - panoramio.jpg", "Castello Aragonese Otranto.jpg"],
+  gallipoli: ["Gallipoli, Puglia - panoramio.jpg", "Gallipoli, harbour (1).jpg", "Il Vecchio Castello (32247141).jpeg"]
+};
+const carouselState = {};
+
+function wmUrl(filename){
+  return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(filename) + '?width=700';
+}
+
+function renderCarousel(id, key){
+  const imgs = galleries[key];
+  const i = carouselState[id];
+  const imgEl = document.getElementById('img-' + id);
+  if (imgEl) {
+    imgEl.onerror = function(){
+      imgEl.onerror = null;
+      imgEl.style.display = 'flex';
+      imgEl.style.alignItems = 'center';
+      imgEl.style.justifyContent = 'center';
+      const parent = imgEl.parentElement;
+      if (parent && !parent.querySelector('.pc-fallback')) {
+        const msg = document.createElement('div');
+        msg.className = 'pc-fallback';
+        msg.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;font-size:12.5px;color:var(--ink-soft);background:var(--surface-1,#efece2);';
+        msg.textContent = 'Photo blocked in this preview \u2014 download the file and open it in a browser to see it.';
+        parent.appendChild(msg);
+      }
+    };
+    imgEl.src = wmUrl(imgs[i]);
+  }
+  const dotsEl = document.getElementById('dots-' + id);
+  if (dotsEl) dotsEl.innerHTML = imgs.map((_, idx) => '<span class="' + (idx === i ? 'active' : '') + '"></span>').join('');
+}
+
+function cycle(id, key, dir){
+  const imgs = galleries[key];
+  carouselState[id] = (carouselState[id] + dir + imgs.length) % imgs.length;
+  renderCarousel(id, key);
+}
+
+function initCarousel(id, key){
+  carouselState[id] = 0;
+  renderCarousel(id, key);
+}
+
+initCarousel('mono1', 'monopoli');
+initCarousel('lecce1', 'lecce');
+initCarousel('ostuni1', 'ostuni');
+initCarousel('valle1', 'valleditria');
+initCarousel('poli1', 'polignano');
+initCarousel('lecce2', 'lecce');
+initCarousel('lecceleftover', 'lecce');
+initCarousel('otranto2', 'otranto');
+initCarousel('gallipoli2', 'gallipoli');
+initCarousel('mono2', 'monopoli');
+initCarousel('poli2', 'polignano');
+
+const teal = '#0f6e56', coral = '#993c1d';
+
+function makeMarker(map, coords, label, color){
+  const icon = L.divIcon({
+    className: '',
+    html: '<div style="background:'+color+';width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 0 0 1px '+color+';"></div>',
+    iconSize:[14,14], iconAnchor:[7,7]
+  });
+  L.marker(coords, {icon}).addTo(map).bindTooltip(label, {permanent:false, direction:'top'});
+  return coords;
+}
+
+if (typeof L === 'undefined') {
+  document.getElementById('map1').innerHTML = '<div style="padding:20px;font-size:13px;color:#993c1d;">Map library failed to load (no internet connection to cdnjs.cloudflare.com, or it\'s being blocked). The rest of the page still works &mdash; try reloading or checking your network/ad-blocker settings.</div>';
+  document.getElementById('map2').innerHTML = document.getElementById('map1').innerHTML;
+  throw new Error('Leaflet failed to load from CDN');
+}
+
+const map1 = L.map('map1').setView([40.78, 17.55], 9);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
+}).addTo(map1);
+
+const monopoli = [40.9523, 17.3034];
+const lecce = [40.3509, 18.1687];
+const ostuni = [40.7304, 17.5773];
+const alberobello = [40.7865, 17.2409];
+const locorotondo = [40.7559, 17.3263];
+const polignano = [40.9950, 17.2196];
+const brindisi = [40.6395, 17.9370];
+const otranto = [40.1445, 18.4924];
+const gallipoli = [40.0559, 17.9811];
+
+makeMarker(map1, monopoli, 'Monopoli (base)', teal);
+makeMarker(map1, lecce, 'Lecce (day trip)', coral);
+makeMarker(map1, ostuni, 'Ostuni (day trip)', coral);
+makeMarker(map1, alberobello, 'Alberobello (day trip)', coral);
+makeMarker(map1, locorotondo, 'Locorotondo (day trip)', coral);
+makeMarker(map1, polignano, 'Polignano a Mare (day trip)', coral);
+makeMarker(map1, brindisi, 'Brindisi (arrival/departure)', '#5f5e5a');
+
+[lecce, ostuni, alberobello, polignano, brindisi].forEach(dest=>{
+  L.polyline([monopoli, dest], {color: coral, weight: 2, dashArray: '5,6', opacity:.7}).addTo(map1);
+});
+L.polyline([alberobello, locorotondo], {color: coral, weight: 2, dashArray:'5,6', opacity:.5}).addTo(map1);
+
+const map2 = L.map('map2').setView([40.55, 18.0], 8.3);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors', maxZoom: 18
+}).addTo(map2);
+
+makeMarker(map2, lecce, 'Lecce (base)', teal);
+makeMarker(map2, monopoli, 'Monopoli (base 2)', teal);
+makeMarker(map2, otranto, 'Otranto (day trip)', coral);
+makeMarker(map2, gallipoli, 'Gallipoli (day trip)', coral);
+makeMarker(map2, polignano, 'Polignano a Mare (day trip)', coral);
+makeMarker(map2, brindisi, 'Brindisi (arrival/departure)', '#5f5e5a');
+
+[otranto, gallipoli].forEach(dest=>{
+  L.polyline([lecce, dest], {color: coral, weight: 2, dashArray: '5,6', opacity:.7}).addTo(map2);
+});
+L.polyline([lecce, monopoli], {color: teal, weight: 3, opacity:.85}).addTo(map2);
+L.polyline([monopoli, polignano], {color: coral, weight: 2, dashArray:'5,6', opacity:.7}).addTo(map2);
+L.polyline([lecce, brindisi], {color: '#5f5e5a', weight: 2, dashArray:'3,5', opacity:.6}).addTo(map2);
+L.polyline([monopoli, brindisi], {color: '#5f5e5a', weight: 2, dashArray:'3,5', opacity:.6}).addTo(map2);
+</script>
+</body>
+</html>
